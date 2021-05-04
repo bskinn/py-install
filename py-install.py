@@ -6,7 +6,6 @@ import subprocess as sp
 import sys
 from urllib.error import URLError
 
-import wget
 
 PAT_CORE_VERSION = re.compile(r"\d+[.]\d+[.]\d+")
 
@@ -20,12 +19,25 @@ def download_tarball(ver):
         print("ERROR: Could not construct tarball download URL")
         return False
 
+    tb_path = TARBALL_PATH.format(ver_tree=ver_tree, ver_file=ver)
+
     try:
-        wget.download(TARBALL_PATH.format(ver_tree=ver_tree, ver_file=ver))
-    except URLError:
+        result = sp.run(
+            f"wget {tb_path}",
+            stdout=sys.stdout,
+            stderr=sp.STDOUT,
+            timeout=60,
+            check=True,
+            shell=True,
+        )
+    except sp.CalledProcessError:
+        print("\n\nERROR: Process error during tarball download")
         return False
-    else:
-        return True
+    except sp.TimeoutExpired:
+        print("\n\nERROR: Timeout during tarball download")
+        return False
+
+    return True
 
 
 def extract_tarball():
