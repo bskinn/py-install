@@ -1,18 +1,27 @@
 #! /usr/bin/python3
 
 import argparse as ap
+import re
 import subprocess as sp
 import sys
 from urllib.error import URLError
 
 import wget
 
-TARBALL_PATH: str = "https://www.python.org/ftp/python/{ver}/Python-{ver}.tgz"
+PAT_CORE_VERSION = re.compile(r"\d+[.]\d+[.]\d+")
+
+TARBALL_PATH: str = "https://www.python.org/ftp/python/{ver_tree}/Python-{ver_file}.tgz"
 
 
 def download_tarball(ver):
     try:
-        wget.download(TARBALL_PATH.format(ver=ver))
+        ver_tree = PAT_CORE_VERSION.match(ver).group(0)
+    except AttributeError:  # No match, getattr() on None
+        print("ERROR: Could not construct tarball download URL")
+        return False
+
+    try:
+        wget.download(TARBALL_PATH.format(ver_tree=ver_tree, ver_file=ver))
     except URLError:
         return False
     else:
@@ -59,7 +68,7 @@ def get_params():
 def main():
     params = get_params()
 
-    if not download_tarball(params["ver"]):
+    if not download_tarball(params["version"]):
         return 1
 
 
