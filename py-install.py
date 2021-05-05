@@ -15,9 +15,17 @@ pat_version_minor = re.compile(r"\d+[.]\d+")
 TARBALL_URL: str = "https://www.python.org/ftp/python/{ver_tree}/Python-{ver_file}.tgz"
 TARBALL_FNAME: str = "Python-{ver_full}.tgz"
 
+SRC_DIR: str = "Python-{ver_full}/"
+MODULES_FILE: str = "Python-{ver_full}/Modules/Setup"
+
+BIN_DIR: str = "~/bin/"
+INSTALL_DIR: str = "~/python/{ver_full}/"
+
 VERSION: str = "version"
 VERSION_TO_PATCH: str = "version_patch"
 VERSION_TO_MINOR: str = "version_minor"
+
+DEBUG_PARAMS = {VERSION: "3.8.0rc1", VERSION_TO_PATCH: "3.8.0", VERSION_TO_MINOR: "3.8"}
 
 
 def make_tarball_fname(params):
