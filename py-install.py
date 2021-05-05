@@ -5,6 +5,7 @@ import re
 import subprocess as sp
 import sys
 import tarfile
+from pathlib import Path
 from urllib.error import URLError
 
 
@@ -12,11 +13,15 @@ pat_version_patch = re.compile(r"\d+[.]\d+[.]\d+")
 pat_version_minor = re.compile(r"\d+[.]\d+")
 
 TARBALL_URL: str = "https://www.python.org/ftp/python/{ver_tree}/Python-{ver_file}.tgz"
-TARBALL_FNAME: str = "Python-{ver_patch}.tgz"
+TARBALL_FNAME: str = "Python-{ver_full}.tgz"
 
 VERSION: str = "version"
 VERSION_TO_PATCH: str = "version_patch"
 VERSION_TO_MINOR: str = "version_minor"
+
+
+def make_tarball_fname(params):
+    return TARBALL_FNAME.format(ver_full=params[VERSION])
 
 
 def download_tarball(params):
@@ -45,7 +50,6 @@ def download_tarball(params):
 
 def check_tarball(tf):
     """Execute basic sanity checks."""
-    breakpoint()
     return (
         len([name for name in tf.getnames() if not name.lower().startswith("python")])
         == 0
@@ -53,17 +57,34 @@ def check_tarball(tf):
 
 
 def extract_tarball(params):
-    tf = tarfile.open(TARBALL_FNAME.format(ver_patch=params[VERSION_TO_PATCH]))
+    tf = tarfile.open(make_tarball_fname(params))
 
     if not check_tarball(tf):
-        print("ERROR: Validation failure on downloaded tarball")
+        print("\nERROR: Validation failure on downloaded tarball")
         return False
+
+    print("Extracting tarball...", end="")
+    try:
+        tf.extractall()
+    except Exception as e:
+        print("\nERROR: Tarball extraction failed.\n")
+        print(e)
+        return False
+    else:
+        print("Done.")
 
     return True
 
 
-def delete_tarball():
-    pass
+def delete_tarball(params):
+    try:
+        Path(make_tarball_fname(params)).unlink()
+    except Exception as e:
+        print("\nERROR: Tarball deletion failed.\n")
+        print(e)
+        return False
+
+    return True
 
 
 def edit_ssl():
@@ -129,6 +150,11 @@ def main():
 
     if not extract_tarball(params):
         return 1
+
+    if not delete_tarball(params):
+        return 1
+
+    return 0
 
 
 if __name__ == "__main__":
