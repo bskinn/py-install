@@ -1,6 +1,7 @@
 #! /usr/bin/python3
 
 import argparse as ap
+import os
 import re
 import subprocess as sp
 import sys
@@ -11,6 +12,7 @@ from urllib.error import URLError
 
 pat_version_patch = re.compile(r"\d+[.]\d+[.]\d+")
 pat_version_minor = re.compile(r"\d+[.]\d+")
+pat_ssl_search = re.compile(r"\n#SSL.+\n(#.+\n){3}")
 
 TARBALL_URL: str = "https://www.python.org/ftp/python/{ver_tree}/Python-{ver_file}.tgz"
 TARBALL_FNAME: str = "Python-{ver_full}.tgz"
@@ -95,9 +97,30 @@ def delete_tarball(params):
     return True
 
 
-def edit_ssl():
-    pass
+def edit_ssl(params):
+    ld_locs = os.environ["LD_LIBRARY_PATH"].strip(":").split(":")
 
+    if not len(ld_locs):
+        print("\nNo custom OpenSSL in LD_LIBRARY_PATH.")
+        print("Skipping modifications to Modules/Setup")
+        return True
+
+    mod_file = MODULES_FILE.format(ver_full=params[VERSION])
+
+    if Path(mod_file + ".dist").is_file():
+        mod_file += ".dist"
+
+    data = Path(mod_file).read_text()
+
+    mch = pat_ssl_search.search(data)
+
+    if mch is None:
+        print("\nERROR: SSL config block not found in Setup file.")
+        return False
+
+    pre, block, post = data.partition(mch.group(0))
+
+    breakpoint()
 
 def run_configure():
     pass
