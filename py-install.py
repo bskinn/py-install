@@ -98,12 +98,19 @@ def delete_tarball(params):
 
 
 def edit_ssl(params):
-    ld_locs = os.environ["LD_LIBRARY_PATH"].strip(":").split(":")
+    ld_locs = [
+        l
+        for l in os.environ["LD_LIBRARY_PATH"].strip(":").split(":")
+        if "openssl" in l.lower()
+    ]
 
     if not len(ld_locs):
         print("\nNo custom OpenSSL in LD_LIBRARY_PATH.")
         print("Skipping modifications to Modules/Setup")
         return True
+
+    ld_loc = ld_locs[0].rpartition("/lib")[0]
+    breakpoint()
 
     mod_file = MODULES_FILE.format(ver_full=params[VERSION])
 
@@ -119,8 +126,10 @@ def edit_ssl(params):
         return False
 
     pre, block, post = data.partition(mch.group(0))
+    lines = block.splitlines()
 
     breakpoint()
+
 
 def run_configure():
     pass
