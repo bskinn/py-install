@@ -138,8 +138,31 @@ def edit_ssl(params):
     return True
 
 
-def run_configure():
-    pass
+def run_configure(params):
+    install_dir = INSTALL_DIR.format(ver_full=params[VERSION])
+    install_dir = str(Path(install_dir).resolve())
+
+    try:
+        result = sp.run(
+            f"./configure --enable-optimizations --prefix={install_dir}",
+            stdout=sys.stdout,
+            stderr=sp.STDOUT,
+            timeout=180,
+            check=True,
+            shell=True,
+            cwd=SRC_DIR.format(ver_full=params[VERSION]),
+        )
+    except sp.CalledProcessError:
+        print("\nERROR: Process error during configure")
+        return False
+    except sp.TimeoutExpired:
+        print("\nERROR: Timeout during configure")
+        return False
+
+    if result.returncode > 0:
+        return False
+
+    return True
 
 
 def make_python():
@@ -202,6 +225,9 @@ def main():
         return 1
 
     if not edit_ssl(params):
+        return 1
+
+    if not run_configure(params):
         return 1
 
     return 0
