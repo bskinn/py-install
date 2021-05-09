@@ -12,7 +12,7 @@ from urllib.error import URLError
 
 pat_version_patch = re.compile(r"\d+[.]\d+[.]\d+")
 pat_version_minor = re.compile(r"\d+[.]\d+")
-pat_ssl_search = re.compile(r"\n#SSL.+\n(#.+\n){3}")
+pat_ssl_search = re.compile(r"\n(#SSL.+\n(#.+\n){3})")
 
 TARBALL_URL: str = "https://www.python.org/ftp/python/{ver_tree}/Python-{ver_file}.tgz"
 TARBALL_FNAME: str = "Python-{ver_full}.tgz"
@@ -110,7 +110,6 @@ def edit_ssl(params):
         return True
 
     ld_loc = ld_locs[0].rpartition("/lib")[0]
-    breakpoint()
 
     mod_file = MODULES_FILE.format(ver_full=params[VERSION])
 
@@ -125,10 +124,18 @@ def edit_ssl(params):
         print("\nERROR: SSL config block not found in Setup file.")
         return False
 
-    pre, block, post = data.partition(mch.group(0))
+    pre, block, post = data.partition(mch.group(1))
     lines = block.splitlines()
 
-    breakpoint()
+    lines.insert(1, f"SSL={ld_loc}")
+    for idx in range(2, 5):
+        lines[idx] = lines[idx].lstrip("#")
+
+    new_block = "\n".join(lines)
+
+    Path(mod_file).write_text(pre + new_block + post)
+
+    return True
 
 
 def run_configure():
@@ -192,6 +199,9 @@ def main():
         return 1
 
     if not delete_tarball(params):
+        return 1
+
+    if not edit_ssl(params):
         return 1
 
     return 0
