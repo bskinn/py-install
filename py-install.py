@@ -212,23 +212,16 @@ def generate_reduced_versions(params):
 def main():
     params = get_params()
 
-    if not generate_reduced_versions(params):
-        return 1
-
-    if not download_tarball(params):
-        return 1
-
-    if not extract_tarball(params):
-        return 1
-
-    if not delete_tarball(params):
-        return 1
-
-    if not edit_ssl(params):
-        return 1
-
-    if not run_configure(params):
-        return 1
+    for func in [
+        generate_reduced_versions,
+        download_tarball,
+        extract_tarball,
+        delete_tarball,
+        edit_ssl,
+        run_configure,
+    ]:
+        if not func(params):
+            return 1
 
     return 0
 
