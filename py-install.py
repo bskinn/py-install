@@ -142,6 +142,9 @@ def run_configure(params):
     install_dir = INSTALL_DIR.format(ver_full=params[VERSION])
     install_dir = str(Path(install_dir).resolve())
 
+    params["install_dir"] = install_dir
+    params["src_dir"] = src_dir = SRC_DIR.format(ver_full=params[VERSION])
+
     try:
         result = sp.run(
             f"./configure --enable-optimizations --prefix={install_dir}",
@@ -150,7 +153,7 @@ def run_configure(params):
             timeout=180,
             check=True,
             shell=True,
-            cwd=SRC_DIR.format(ver_full=params[VERSION]),
+            cwd=src_dir,
         )
     except sp.CalledProcessError:
         print("\nERROR: Process error during configure")
