@@ -27,6 +27,9 @@ VERSION: str = "version"
 VERSION_TO_PATCH: str = "version_patch"
 VERSION_TO_MINOR: str = "version_minor"
 
+KEY_INSTALL_DIR = "install_dir"
+KEY_SRC_DIR = "src_dir"
+
 DEBUG_PARAMS = {VERSION: "3.8.0rc1", VERSION_TO_PATCH: "3.8.0", VERSION_TO_MINOR: "3.8"}
 
 
@@ -139,11 +142,8 @@ def edit_ssl(params):
 
 
 def run_configure(params):
-    install_dir = INSTALL_DIR.format(ver_full=params[VERSION])
-    install_dir = str(Path(install_dir).resolve())
-
-    params["install_dir"] = install_dir
-    params["src_dir"] = src_dir = SRC_DIR.format(ver_full=params[VERSION])
+    install_dir = params[KEY_INSTALL_DIR]
+    src_dir = params[KEY_SRC_DIR]
 
     try:
         result = sp.run(
@@ -168,12 +168,56 @@ def run_configure(params):
     return True
 
 
-def make_python():
-    pass
+def make_python(params):
+    src_dir = params[KEY_SRC_DIR]
+
+    try:
+        result = sp.run(
+            "make",
+            stdout=sys.stdout,
+            stderr=sp.STDOUT,
+            timeout=1200,
+            check=True,
+            shell=True,
+            cwd=src_dir,
+        )
+    except sp.CalledProcessError:
+        print("\nERROR: Process error during make")
+        return False
+    except sp.TimeoutExpired:
+        print("\nERROR: Timeout during make")
+        return False
+
+    if result.returncode > 0:
+        return False
+
+    return True
 
 
-def install_python():
-    pass
+def install_python(params):
+    src_dir = params[KEY_SRC_DIR]
+
+    try:
+        result = sp.run(
+            "make install",
+            stdout=sys.stdout,
+            stderr=sp.STDOUT,
+            timeout=240,
+            check=True,
+            shell=True,
+            cwd=src_dir,
+        )
+    except sp.CalledProcessError:
+        print("\nERROR: Process error during 'make install'")
+        return False
+    except sp.TimeoutExpired:
+        print("\nERROR: Timeout during 'make install'")
+        return False
+
+    if result.returncode > 0:
+        return False
+
+    return True
 
 
 def update_symlinks():
@@ -186,7 +230,14 @@ def get_params():
     prs.add_argument(VERSION, help="Version of CPython to install")
 
     ns = prs.parse_args()
-    return vars(ns)
+    params = vars(ns)
+
+    install_dir = INSTALL_DIR.format(ver_full=params[VERSION])
+    params[KEY_INSTALL_DIR] = str(Path(install_dir).resolve())
+
+    params[KEY_SRC_DIR] = SRC_DIR.format(ver_full=params[VERSION])
+
+    return params
 
 
 def generate_reduced_versions(params):
@@ -222,6 +273,8 @@ def main():
         delete_tarball,
         edit_ssl,
         run_configure,
+        make_python,
+        install_python,
     ]:
         if not func(params):
             return 1
