@@ -20,8 +20,9 @@ TARBALL_FNAME: str = "Python-{ver_full}.tgz"
 SRC_DIR: str = "Python-{ver_full}/"
 MODULES_FILE: str = "Python-{ver_full}/Modules/Setup"
 
-BIN_DIR: str = "~/bin/"
+LINK_FILE: str = "~/bin/python{ver_minor}"
 INSTALL_DIR: str = "~/python/{ver_full}/"
+EXECUTABLE_FILE: str = "{install_dir}/bin/python{ver_minor}"
 
 VERSION: str = "version"
 VERSION_TO_PATCH: str = "version_patch"
@@ -220,8 +221,38 @@ def install_python(params):
     return True
 
 
-def update_symlinks():
-    pass
+def update_symlink(params):
+    ver = params[VERSION]
+    ver_minor = params[VERSION_TO_MINOR]
+
+    exe_file = EXECUTABLE_FILE.format(
+        install_dir=params[KEY_INSTALL_DIR], ver_minor=ver_minor
+    )
+    link_file = LINK_FILE.format(ver_minor=ver_minor)
+
+    exe_file = str(Path(exe_file).resolve())
+    link_file = str(Path(link_file).resolve())
+
+    try:
+        result = sp.run(
+            f"ln -sf {exe_file} {link_file}",
+            stdout=sys.stdout,
+            stderr=sp.STDOUT,
+            timeout=20,
+            check=True,
+            shell=True,
+        )
+    except sp.CalledProcessError:
+        print("\nERROR: Process error during symlink creation")
+        return False
+    except sp.TimeoutExpired:
+        print("\nERROR: Timeout during symlink creation")
+        return False
+
+    if result.returncode > 0:
+        return False
+
+    return True
 
 
 def get_params():
@@ -275,6 +306,7 @@ def main():
         run_configure,
         make_python,
         install_python,
+        update_symlink,
     ]:
         if not func(params):
             return 1
