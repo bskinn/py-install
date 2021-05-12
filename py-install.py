@@ -20,8 +20,8 @@ TARBALL_FNAME: str = "Python-{ver_full}.tgz"
 SRC_DIR: str = "Python-{ver_full}/"
 MODULES_FILE: str = "Python-{ver_full}/Modules/Setup"
 
-LINK_FILE: str = "~/bin/python{ver_minor}"
-INSTALL_DIR: str = "~/python/{ver_full}/"
+LINK_FILE: str = "{home}/bin/python{ver_minor}"
+INSTALL_DIR: str = "{home}/python/{ver_full}/"
 EXECUTABLE_FILE: str = "{install_dir}/bin/python{ver_minor}"
 
 VERSION: str = "version"
@@ -228,7 +228,7 @@ def update_symlink(params):
     exe_file = EXECUTABLE_FILE.format(
         install_dir=params[KEY_INSTALL_DIR], ver_minor=ver_minor
     )
-    link_file = LINK_FILE.format(ver_minor=ver_minor)
+    link_file = LINK_FILE.format(home=Path.home(), ver_minor=ver_minor)
 
     exe_file = str(Path(exe_file).resolve())
     link_file = str(Path(link_file).resolve())
@@ -263,7 +263,7 @@ def get_params():
     ns = prs.parse_args()
     params = vars(ns)
 
-    install_dir = INSTALL_DIR.format(ver_full=params[VERSION])
+    install_dir = INSTALL_DIR.format(home=Path.home(), ver_full=params[VERSION])
     params[KEY_INSTALL_DIR] = str(Path(install_dir).resolve())
 
     params[KEY_SRC_DIR] = SRC_DIR.format(ver_full=params[VERSION])
