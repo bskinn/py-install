@@ -12,7 +12,23 @@ from urllib.error import URLError
 
 pat_version_patch = re.compile(r"\d+[.]\d+[.]\d+")
 pat_version_minor = re.compile(r"\d+[.]\d+")
-pat_ssl_search = re.compile(r"\n(#SSL.+\n(#.+\n){3})")
+
+SSL_ENV_VAR = "ssl_var"
+SSL_BLOCK = "ssl_block"
+pat_ssl_search = re.compile(
+    rf"""
+    \n                       # Need a leading uncaptured newline
+    (?P<{SSL_BLOCK}>         # Capture for the entire block
+        [#]\s*               # Var name line starts commented out
+        (?P<{SSL_ENV_VAR}>   # Capture for just the var name
+            (OPEN)?SSL       # SSL, or OPENSSL (>= 3.10.0b1)
+        )
+        .+\n                 # Arbitrary to EOL
+        ([#].+\n)+           # Some additional number of commented-out lines
+    )
+""",
+    re.X,
+)
 
 TARBALL_URL: str = "https://www.python.org/ftp/python/{ver_tree}/Python-{ver_file}.tgz"
 TARBALL_FNAME: str = "Python-{ver_full}.tgz"
@@ -128,14 +144,16 @@ def edit_ssl(params):
         print("\nERROR: SSL config block not found in Setup file.")
         return False
 
-    pre, block, post = data.partition(mch.group(1))
+    pre, block, post = data.partition(mch.group(SSL_BLOCK))
     lines = block.splitlines()
 
-    lines.insert(1, f"SSL={ld_loc}")
-    for idx in range(2, 5):
-        lines[idx] = lines[idx].lstrip("#")
+    new_lines = [lines[0]]
+    new_lines.append(f"{mch.group(SSL_ENV_VAR)}={ld_loc}")
+    new_lines.append(lines[1].lstrip("#").lstrip())
+    for line in lines[2:]:
+        new_lines.append(line.lstrip("#"))
 
-    new_block = "\n".join(lines)
+    new_block = "\n".join(new_lines)
 
     Path(mod_file).write_text(pre + new_block + post)
 
