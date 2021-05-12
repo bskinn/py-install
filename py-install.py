@@ -230,9 +230,6 @@ def update_symlink(params):
     )
     link_file = LINK_FILE.format(home=Path.home(), ver_minor=ver_minor)
 
-    exe_file = str(Path(exe_file).resolve())
-    link_file = str(Path(link_file).resolve())
-
     try:
         result = sp.run(
             f"ln -sf {exe_file} {link_file}",
@@ -261,14 +258,16 @@ def get_params():
     prs.add_argument(VERSION, help="Version of CPython to install")
 
     ns = prs.parse_args()
-    params = vars(ns)
+    return vars(ns)
 
+
+def update_params(params):
     install_dir = INSTALL_DIR.format(home=Path.home(), ver_full=params[VERSION])
     params[KEY_INSTALL_DIR] = str(Path(install_dir).resolve())
 
     params[KEY_SRC_DIR] = SRC_DIR.format(ver_full=params[VERSION])
 
-    return params
+    return True
 
 
 def generate_reduced_versions(params):
@@ -299,6 +298,7 @@ def main():
 
     for func in [
         generate_reduced_versions,
+        update_params,
         download_tarball,
         extract_tarball,
         delete_tarball,
