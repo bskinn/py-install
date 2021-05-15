@@ -311,6 +311,14 @@ def generate_reduced_versions(params):
     return True
 
 
+def quick_params(ver):
+    params = {VERSION: ver}
+    generate_reduced_versions(params)
+    update_params(params)
+
+    return params
+
+
 def main():
     params = get_params()
 
