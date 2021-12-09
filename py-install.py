@@ -47,6 +47,9 @@ VERSION_TO_MINOR: str = "version_minor"
 KEY_INSTALL_DIR = "install_dir"
 KEY_SRC_DIR = "src_dir"
 
+KEY_USE_OPENSSL_FLAG = "use_ssl"
+KEY_OPENSSL_LOC = "openssl_loc"
+
 DEBUG_PARAMS = {VERSION: "3.8.0rc1", VERSION_TO_PATCH: "3.8.0", VERSION_TO_MINOR: "3.8"}
 
 
@@ -118,6 +121,22 @@ def delete_tarball(params):
 
 
 def edit_ssl(params):
+    """Edit the SSL settings in Modules/Setup, if possible.
+
+    If no openSSL in LD_LIBRARY_PATH, this is skipped.
+
+    If the proper format of block isn't found, but openSSL is in
+    LD_LIBRARY_PATH, assume the new (Python 3.11+) argument to
+    the 'configure' script is to be used.
+
+    Either way, this function MUST inject a True/False value for
+    KEY_USE_SSL_FLAG into 'params', for later use. It must also
+    inject a path string for KEY_OPENSSL_LOC into 'params'.
+
+    """
+    # Default to not using the --with-openssl flag, later
+    params[KEY_USE_OPENSSL_FLAG] = False
+
     ld_locs = [
         l
         for l in os.environ["LD_LIBRARY_PATH"].strip(":").split(":")
@@ -126,10 +145,12 @@ def edit_ssl(params):
 
     if not len(ld_locs):
         print("\nNo custom OpenSSL in LD_LIBRARY_PATH.")
-        print("Skipping modifications to Modules/Setup")
+        print("Skipping modifications to Modules/Setup\n")
+        params[KEY_OPENSSL_LOC] = None
         return True
 
     ld_loc = ld_locs[0].rpartition("/lib")[0]
+    params[KEY_OPENSSL_LOC] = ld_loc
 
     mod_file = MODULES_FILE.format(ver_full=params[VERSION])
 
@@ -141,8 +162,10 @@ def edit_ssl(params):
     mch = pat_ssl_search.search(data)
 
     if mch is None:
-        print("\nERROR: SSL config block not found in Setup file.")
-        return False
+        print("\nNOTE: SSL config block not found in Setup file.")
+        print("Will attempt the --with-openssl flag to ./configure\n")
+        params[KEY_USE_OPENSSL_FLAG] = True
+        return True
 
     pre, block, post = data.partition(mch.group(SSL_BLOCK))
     lines = block.splitlines()
@@ -164,9 +187,15 @@ def run_configure(params):
     install_dir = params[KEY_INSTALL_DIR]
     src_dir = params[KEY_SRC_DIR]
 
+    if params[KEY_USE_OPENSSL_FLAG] and (loc := params[KEY_OPENSSL_LOC]):
+        # Make sure there's a leading space on this string!
+        openssl_flag = f" --with-openssl={loc}"
+    else:
+        openssl_flag = ""
+
     try:
         result = sp.run(
-            f"./configure --enable-optimizations --prefix={install_dir}",
+            f"./configure --enable-optimizations --prefix={install_dir}{openssl_flag}",
             stdout=sys.stdout,
             stderr=sp.STDOUT,
             timeout=180,
