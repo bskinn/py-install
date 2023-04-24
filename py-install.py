@@ -194,7 +194,7 @@ def run_configure(params):
     openssl_flag = f" --with-openssl={params[KEY_OPENSSL_LOC]}"
 
     # Leading space here too
-    optim_flag = "" if params[SKIP_PGO_ARG] else " --enable-optimizations"
+    optim_flag = "" if params[SKIP_PGO_ARG.strip("-").replace("-", "_")] else " --enable-optimizations"
 
     try:
         result = sp.run(
@@ -272,7 +272,7 @@ def install_python(params):
 
 
 def update_symlink(params):
-    if params[SKIP_SYMLINK_ARG]:
+    if params[SKIP_SYMLINK_ARG.strip("-").replace("-", "_")]:
         print("SKIPPING symlink update")
         return True
 
