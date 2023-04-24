@@ -51,6 +51,7 @@ KEY_USE_OPENSSL_FLAG = "use_ssl"
 KEY_OPENSSL_LOC = "openssl_loc"
 
 SKIP_SYMLINK_ARG: str = "--skip-symlink"
+SKIP_PGO_ARG: str = "--skip-pgo"
 
 DEBUG_PARAMS = {VERSION: "3.8.0rc1", VERSION_TO_PATCH: "3.8.0", VERSION_TO_MINOR: "3.8"}
 
@@ -309,7 +310,12 @@ def get_params():
     prs.add_argument(
         SKIP_SYMLINK_ARG,
         action="store_true",
-        help="Do not update the symlink in ~/bin"
+        help="Do not update the symlink in ~/bin",
+    )
+    prs.add_argument(
+        SKIP_PGO_ARG,
+        action="store_true",
+        help="Do not run PGO",
     )
 
     ns = prs.parse_args()
