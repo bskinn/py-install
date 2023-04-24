@@ -50,7 +50,7 @@ KEY_SRC_DIR = "src_dir"
 KEY_USE_OPENSSL_FLAG = "use_ssl"
 KEY_OPENSSL_LOC = "openssl_loc"
 
-SKIP_SYMLINK_ARG: str = "skip-symlink"
+SKIP_SYMLINK_ARG: str = "--skip-symlink"
 
 DEBUG_PARAMS = {VERSION: "3.8.0rc1", VERSION_TO_PATCH: "3.8.0", VERSION_TO_MINOR: "3.8"}
 
@@ -307,7 +307,7 @@ def get_params():
 
     prs.add_argument(VERSION, help="Version of CPython to install")
     prs.add_argument(
-        f"--{SKIP_SYMLINK_ARG}",
+        SKIP_SYMLINK_ARG,
         action="store_true",
         help="Do not update the symlink in ~/bin"
     )
