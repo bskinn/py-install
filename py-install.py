@@ -193,9 +193,12 @@ def run_configure(params):
     # Make sure there's a leading space on this string!
     openssl_flag = f" --with-openssl={params[KEY_OPENSSL_LOC]}"
 
+    # Leading space here too
+    optim_flag = "" if params[SKIP_PGO_ARG] else " --enable-optimizations"
+
     try:
         result = sp.run(
-            f"./configure --enable-optimizations --prefix={install_dir}{openssl_flag}",
+            f"./configure {optim_flag} --prefix={install_dir}{openssl_flag}",
             stdout=sys.stdout,
             stderr=sp.STDOUT,
             timeout=180,
