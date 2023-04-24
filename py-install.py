@@ -187,11 +187,8 @@ def run_configure(params):
     install_dir = params[KEY_INSTALL_DIR]
     src_dir = params[KEY_SRC_DIR]
 
-    if params[KEY_USE_OPENSSL_FLAG] and (loc := params[KEY_OPENSSL_LOC]):
-        # Make sure there's a leading space on this string!
-        openssl_flag = f" --with-openssl={loc}"
-    else:
-        openssl_flag = ""
+    # Make sure there's a leading space on this string!
+    openssl_flag = f" --with-openssl={params[KEY_OPENSSL_LOC]}"
 
     try:
         result = sp.run(
