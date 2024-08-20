@@ -142,7 +142,7 @@ def edit_ssl(params):
 
     ld_locs = [
         l
-        for l in os.environ["LD_LIBRARY_PATH"].strip(":").split(":")
+        for l in os.environ.get("LD_LIBRARY_PATH", "").strip(":").split(":")
         if "openssl" in l.lower()
     ]
 
