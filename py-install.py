@@ -101,7 +101,7 @@ def extract_tarball(params):
 
     print("Extracting tarball...", end="")
     try:
-        tf.extractall()
+        tf.extractall(filter="data")
     except Exception as e:
         print("\nERROR: Tarball extraction failed.\n")
         print(e)
