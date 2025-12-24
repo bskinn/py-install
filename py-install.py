@@ -3,6 +3,7 @@
 import argparse as ap
 import os
 import re
+import shutil
 import subprocess as sp
 import sys
 import tarfile
@@ -52,8 +53,14 @@ KEY_OPENSSL_LOC = "openssl_loc"
 
 SKIP_SYMLINK_ARG: str = "--skip-symlink"
 SKIP_PGO_ARG: str = "--skip-pgo"
+FREE_THREADED_ARG: str = "--disable-gil"
 
 DEBUG_PARAMS = {VERSION: "3.8.0rc1", VERSION_TO_PATCH: "3.8.0", VERSION_TO_MINOR: "3.8"}
+
+
+def convert_flag_to_param(flag: str) -> str:
+    """Convert a --flag to its params-key equivalent."""
+    return flag.strip("-").replace("-", "_")
 
 
 def make_tarball_fname(params):
@@ -66,7 +73,7 @@ def download_tarball(params):
     )
 
     try:
-        result = sp.run(
+        _ = sp.run(
             f"wget {tb_path}",
             stdout=sys.stdout,
             stderr=sp.STDOUT,
@@ -108,6 +115,11 @@ def extract_tarball(params):
         return False
     else:
         print("Done.")
+
+    if params[convert_flag_to_param(FREE_THREADED_ARG)]:
+        dir_name = params[KEY_SRC_DIR]
+
+        shutil.move(dir_name.removesuffix("t/"), dir_name.removesuffix("/"))
 
     return True
 
@@ -155,7 +167,10 @@ def edit_ssl(params):
     ld_loc = ld_locs[0].rpartition("/lib")[0]
     params[KEY_OPENSSL_LOC] = ld_loc
 
-    mod_file = MODULES_FILE.format(ver_full=params[VERSION])
+    ver_mod_file = params[VERSION] + (
+        "t" if params[convert_flag_to_param(FREE_THREADED_ARG)] else ""
+    )
+    mod_file = MODULES_FILE.format(ver_full=ver_mod_file)
 
     if Path(mod_file + ".dist").is_file():
         mod_file += ".dist"
@@ -194,11 +209,18 @@ def run_configure(params):
     openssl_flag = f" --with-openssl={params[KEY_OPENSSL_LOC]}"
 
     # Leading space here too
-    optim_flag = "" if params[SKIP_PGO_ARG.strip("-").replace("-", "_")] else " --enable-optimizations"
+    optim_flag = (
+        "" if params[convert_flag_to_param(SKIP_PGO_ARG)] else " --enable-optimizations"
+    )
+
+    # Also a leading space
+    free_thread_flag = (
+        " --disable-gil" if params[convert_flag_to_param(FREE_THREADED_ARG)] else ""
+    )
 
     try:
         result = sp.run(
-            f"./configure {optim_flag} --prefix={install_dir}{openssl_flag}",
+            f"./configure {optim_flag}{free_thread_flag} --prefix={install_dir}{openssl_flag}",
             stdout=sys.stdout,
             stderr=sp.STDOUT,
             timeout=180,
@@ -272,16 +294,18 @@ def install_python(params):
 
 
 def update_symlink(params):
-    if params[SKIP_SYMLINK_ARG.strip("-").replace("-", "_")]:
+    if params[convert_flag_to_param(SKIP_SYMLINK_ARG)]:
         print("SKIPPING symlink update")
         return True
 
-    ver = params[VERSION]
-    ver_minor = params[VERSION_TO_MINOR]
+    ver_minor = params[VERSION_TO_MINOR] + (
+        "t" if params[convert_flag_to_param(FREE_THREADED_ARG)] else ""
+    )
 
     exe_file = EXECUTABLE_FILE.format(
         install_dir=params[KEY_INSTALL_DIR], ver_minor=ver_minor
     )
+
     link_file = LINK_FILE.format(home=Path.home(), ver_minor=ver_minor)
 
     try:
@@ -320,16 +344,24 @@ def get_params():
         action="store_true",
         help="Do not run PGO",
     )
+    prs.add_argument(
+        FREE_THREADED_ARG, action="store_true", help="If supported, build free-threaded"
+    )
 
     ns = prs.parse_args()
     return vars(ns)
 
 
 def update_params(params):
-    install_dir = INSTALL_DIR.format(home=Path.home(), ver_full=params[VERSION])
+    ver_full = params[VERSION]
+
+    if params[convert_flag_to_param(FREE_THREADED_ARG)]:
+        ver_full += "t"
+
+    install_dir = INSTALL_DIR.format(home=Path.home(), ver_full=ver_full)
     params[KEY_INSTALL_DIR] = str(Path(install_dir).resolve())
 
-    params[KEY_SRC_DIR] = SRC_DIR.format(ver_full=params[VERSION])
+    params[KEY_SRC_DIR] = SRC_DIR.format(ver_full=ver_full)
 
     return True
 
